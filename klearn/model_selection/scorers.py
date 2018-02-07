@@ -11,7 +11,7 @@ is the model to be evaluated, ``X`` is the test data and ``y`` is the
 ground truth labeling (or ``None`` in the case of unsupervised models).
 """
 
-# Authors: Kevin Liao <kevin.lwk.liao@gmail.com>
+# Authors: Kevin Liao
 from sklearn.metrics import (accuracy_score, f1_score, precision_score,
                              recall_score, roc_auc_score, log_loss)
 

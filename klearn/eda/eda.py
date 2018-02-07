@@ -4,7 +4,7 @@
 #
 
 
-# Authors: Kevin Liao <kevin.lwk.liao@gmail.com>
+# Authors: Kevin Liao
 
 """Auto exploratory data analysis routine"""
 # import numpy as np

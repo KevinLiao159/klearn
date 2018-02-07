@@ -1,4 +1,4 @@
-# Authors: Kevin Liao <kevin.lwk.liao@gmail.com>
+# Authors: Kevin Liao
 
 import logging
 

@@ -1,4 +1,4 @@
-# Authors: Kevin Liao <kevin.lwk.liao@gmail.com>
+# Authors: Kevin Liao
 
 """Scatter plot (line plot) plotly wrapper"""
 import pandas as pd

@@ -6,6 +6,7 @@ data, making assertions, converting to numpy for calculations
 import numpy as np
 import pandas as pd
 import pickle
+from copy import deepcopy
 from sklearn.utils import check_array
 from sklearn.utils.validation import check_is_fitted
 from sklearn.model_selection._split import check_cv
@@ -14,6 +15,7 @@ from sklearn.model_selection._split import check_cv
 __all__ = ('check_gravity_index',
            'force_array',
            'check_consistent_length',
+           'fit_model',
            'check_is_fitted',
            'process_cv_results',
            'save_object',
@@ -59,6 +61,12 @@ def check_consistent_length(*arrays):
     if len(uniques) > 1:
         raise ValueError("Found input variables with inconsistent numbers of"
                          " samples: %r" % [int(l) for l in lengths])
+
+
+def fit_model(model, X, y, *args, **kwargs):
+    model = deepcopy(model)
+    model.fit(X, y, *args, **kwargs)
+    return model
 
 
 def process_cv_results(cv_results):

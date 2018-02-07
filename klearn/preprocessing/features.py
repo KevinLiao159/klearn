@@ -5,7 +5,7 @@ All classes or functions should act like feature filters/selectors
 All classes or functions only allow input data to be pandas
 """
 
-# Authors: Kevin Liao <kevin.lwk.liao@gmail.com>
+# Authors: Kevin Liao
 
 import numpy as np
 import pandas as pd

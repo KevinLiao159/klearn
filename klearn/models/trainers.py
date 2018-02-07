@@ -1,6 +1,6 @@
 """trainers are responsible for training and saving models"""
 
-# Authors: Kevin Liao <kevin.lwk.liao@gmail.com>
+# Authors: Kevin Liao
 import os
 import abc
 from copy import deepcopy

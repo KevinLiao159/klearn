@@ -5,7 +5,7 @@ eg. input numpy array, it should return numpy array
     input pandas dataframe, it should return pandas dataframe
 """
 
-# Authors: Kevin Liao <kevin.lwk.liao@gmail.com>
+# Authors: Kevin Liao
 
 import numpy as np
 import pandas as pd

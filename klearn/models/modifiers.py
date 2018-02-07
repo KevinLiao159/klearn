@@ -1,4 +1,4 @@
-# Authors: Kevin Liao <kevin.lwk.liao@gmail.com>
+# Authors: Kevin Liao
 
 import numpy as np
 import pandas as pd
@@ -11,6 +11,7 @@ from sklearn.neighbors import KernelDensity
 from sklearn.externals.joblib import Parallel, delayed
 from gravity_learn.utils import (force_array,
                                  check_cv,
+                                 fit_model,
                                  check_is_fitted)
 from gravity_learn.logger import get_logger
 
@@ -128,12 +129,6 @@ class ModelTransformer(BaseEstimator, TransformerMixin):
         return y_hat
 
 
-def _fit_base_model(model, X, y, *args, **kwargs):
-    # NOTE: temporary hack --- should clone model
-    model.fit(X, y, *args, **kwargs)
-    return model
-
-
 class ModelBaseClassifier(BaseEstimator):
     """
     This is specific for base models in a context of stacking/ensemble.
@@ -199,7 +194,7 @@ class ModelBaseClassifier(BaseEstimator):
         if isinstance(X, pd.DataFrame):
             if not isinstance(y, (pd.Series, pd.DataFrame)):
                 y = pd.DataFrame(y)
-            self.fitted_models = parallel(delayed(_fit_base_model)(
+            self.fitted_models = parallel(delayed(fit_model)(
                 model=deepcopy(self.model),
                 X=X.iloc[train],
                 y=y.iloc[train],
@@ -208,7 +203,7 @@ class ModelBaseClassifier(BaseEstimator):
                 ) for train, test in self.folds
             )
         else:  # X is not a dataframe
-            self.fitted_models = parallel(delayed(_fit_base_model)(
+            self.fitted_models = parallel(delayed(fit_model)(
                 model=deepcopy(self.model),
                 X=X[train],
                 y=force_array(y)[train],
@@ -218,7 +213,7 @@ class ModelBaseClassifier(BaseEstimator):
             )
         # train model with full 100% data
         if self.full_train:
-            self.full_fitted_model = _fit_base_model(
+            self.full_fitted_model = fit_model(
                 model=deepcopy(self.model),
                 X=X,
                 y=y,

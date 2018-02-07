@@ -5,15 +5,11 @@ from sklearn.utils.metaestimators import _BaseComposition
 from sklearn.preprocessing import LabelEncoder
 from sklearn.externals.joblib import Parallel, delayed
 from gravity_learn.utils import (force_array,
-                                 check_is_fitted)
+                                 check_is_fitted,
+                                 fit_model)
 
 
 __all__ = ['ModelDispatch']
-
-
-def _fit_model(model, X, y):
-    model.fit(X, y)
-    return model
 
 
 class ModelDispatch(_BaseComposition):
@@ -58,10 +54,9 @@ class ModelDispatch(_BaseComposition):
         self.n_jobs = n_jobs
         self.verbose = verbose
         if supervise_cutoff is not None:
-            try:
-                self.supervise_cutoff = list(iter(supervise_cutoff))
-            except:
-                self.supervise_cutoff = [supervise_cutoff]
+            if not isinstance(supervise_cutoff,
+                              (list, tuple, np.ndarray, pd.Index)):
+                supervise_cutoff = [supervise_cutoff]
 
     def get_params(self, deep=True):
         return self._get_params('model_list', deep=deep)
@@ -120,7 +115,7 @@ class ModelDispatch(_BaseComposition):
             }
         # Paralization and fit downstream models
         parallel = Parallel(n_jobs=self.n_jobs, verbose=self.verbose)
-        func = delayed(_fit_model)
+        func = delayed(fit_model)
         fitted_model_list = parallel(
             func(self.model_dict[group], X.iloc[index], y.iloc[index])
             for (group, index) in index_dict.items()

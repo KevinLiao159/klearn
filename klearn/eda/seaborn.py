@@ -9,7 +9,7 @@
 # make sure all wrapper are generalizable as much as possible
 # (take a list of input instead of dataframe)
 
-# Authors: Kevin Liao <kevin.lwk.liao@gmail.com>
+# Authors: Kevin Liao
 
 """seaborn wrapper for multiple subplots"""
 import numpy as np

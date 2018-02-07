@@ -8,6 +8,7 @@ from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.externals.joblib import Parallel, delayed
 from gravity_learn.utils import (force_array,
                                  check_cv,
+                                 fit_model,
                                  check_is_fitted)
 
 
@@ -188,7 +189,7 @@ class QuickStackClassifier(BaseEstimator):
         if isinstance(X, pd.DataFrame):
             if not isinstance(y, (pd.Series, pd.DataFrame)):
                 y = pd.DataFrame(y)
-            self.fitted_models = parallel(delayed(_fit_base_model)(
+            self.fitted_models = parallel(delayed(fit_model)(
                 model=deepcopy(model),
                 X=X.iloc[self.in_fold],
                 y=y.iloc[self.in_fold],
@@ -197,7 +198,7 @@ class QuickStackClassifier(BaseEstimator):
                 ) for (_, model) in self.base_models
             )
         else:  # X is not a dataframe
-            self.fitted_models = parallel(delayed(_fit_base_model)(
+            self.fitted_models = parallel(delayed(fit_model)(
                 model=deepcopy(model),
                 X=X[self.in_fold],
                 y=force_array(y)[self.in_fold],
@@ -207,7 +208,7 @@ class QuickStackClassifier(BaseEstimator):
             )
         # train model with full 100% data
         if self.full_train:
-            self.full_fitted_models = parallel(delayed(_fit_base_model)(
+            self.full_fitted_models = parallel(delayed(fit_model)(
                 model=deepcopy(model),
                 X=X,
                 y=y,
@@ -283,12 +284,6 @@ class QuickStackClassifier(BaseEstimator):
         return force_array(df_pred)
 
 
-def _fit_base_model(model, X, y, *args, **kwargs):
-    # NOTE: temporary hack --- should clone model before it gets passed in
-    model.fit(X, y, *args, **kwargs)
-    return model
-
-
 def _base_model_cross_val(model, X, y, cv=None, proba=True, *args, **kwargs):
     """
     A private function that trains each base model for each fold
@@ -329,7 +324,7 @@ def _base_model_cross_val(model, X, y, cv=None, proba=True, *args, **kwargs):
         y = pd.DataFrame(force_array(y))
     # iterate each train-fold and fit base model
     fitted_models = [
-        _fit_base_model(
+        fit_model(
             model=deepcopy(model),
             X=X.iloc[train],
             y=y.iloc[train],
@@ -474,7 +469,7 @@ class FullStackClassifier(BaseEstimator):
         )
         # check full_train
         if self.full_train:
-            self.full_fitted_models = parallel(delayed(_fit_base_model)(
+            self.full_fitted_models = parallel(delayed(fit_model)(
                 model=deepcopy(model),
                 X=X,
                 y=y,

@@ -8,7 +8,7 @@ Function named as *_error or *_loss return a scalar value to minimize:
 the lower the better
 """
 
-# Authors: Kevin Liao <kevin.lwk.liao@gmail.com>
+# Authors: Kevin Liao
 
 import numpy as np
 import math

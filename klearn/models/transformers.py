@@ -4,7 +4,7 @@ eg. features pruning, feature extraction, feature selection,
     decomposition, manifolds, and so on...
 """
 
-# Authors: Kevin Liao <kevin.lwk.liao@gmail.com>
+# Authors: Kevin Liao
 
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
