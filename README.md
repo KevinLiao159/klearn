@@ -13,7 +13,7 @@ klearn is a Python module that elaborates on scikit-learn. It provides data prep
 
 ### LICENSE
 
-[license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)]
+[[license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)]
 
 MIT License
 
