@@ -10,6 +10,7 @@ from .modifiers import ModelTransformer
 from .modifiers import ModelBaseClassifier
 from .modifiers import ModelTargetModifier
 from .modifiers import AveragerClassifier
+from .trainers import GeneralTrainer
 
 
 __all__ = ('sigmoil',
@@ -23,4 +24,5 @@ __all__ = ('sigmoil',
            'ModelTransformer',
            'ModelBaseClassifier',
            'ModelTargetModifier',
-           'AveragerClassifier')
+           'AveragerClassifier',
+           'GeneralTrainer')

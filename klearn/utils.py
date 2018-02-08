@@ -14,6 +14,7 @@ from sklearn.model_selection._split import check_cv
 
 __all__ = ('check_gravity_index',
            'force_array',
+           'ensure_2d_array',
            'check_consistent_length',
            'fit_model',
            'check_is_fitted',
@@ -35,7 +36,7 @@ def force_array(array):
 
     Returns
     -------
-    X_converted : object
+    X_converted : numpy array
         The converted and validated X.
     """
     if isinstance(array, pd.DataFrame) and array.shape[1] == 1:
@@ -45,6 +46,30 @@ def force_array(array):
             ensure_2d=False
         )
     return np.asarray(array)
+
+
+def ensure_2d_array(array, axis=1):
+    """
+    Parameters
+    ----------
+    array : object
+        Input object to check / convert.
+
+    axis : integer
+        Position in the axes where the new axis is placed.
+
+    Returns
+    -------
+    X_converted : 2d numpy array
+        The converted and validated X.
+    """
+    X = force_array(array)
+    if X.ndim == 1:
+        if axis == 1:
+            X = X.reshape(-1, 1)
+        else:
+            X = X.reshape(1, -1)
+    return X
 
 
 def check_consistent_length(*arrays):

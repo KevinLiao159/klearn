@@ -27,6 +27,7 @@ from .scorers import mean_absolute_percentage_error_scorer
 from .split import TSBFold
 from .split import ts_train_test_split
 from .split import group_train_test_split
+from .split import ts_predefined_split
 
 
 __all__ = ['top_bottom_accuracy_score',
