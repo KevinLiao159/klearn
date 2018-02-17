@@ -17,9 +17,11 @@ __all__ = ('check_gravity_index',
            'ensure_2d_array',
            'check_consistent_length',
            'fit_model',
+           'check_has_set_attr',
            'check_is_fitted',
            'process_cv_results',
            'save_object',
+           'load_object',
            'check_cv')
 
 
@@ -94,6 +96,16 @@ def fit_model(model, X, y, *args, **kwargs):
     return model
 
 
+def check_has_set_attr(obj, attributes):
+    if not isinstance(attributes, (list, tuple)):
+        attributes = [attributes]
+    for attr in attributes:
+        if hasattr(obj, attr):
+            pass
+        else:
+            raise AttributeError('Object does NOT have {}'.format(attr))
+
+
 def process_cv_results(cv_results):
     """
     This function reformats the .cv_results_ attribute of a fitted randomized
@@ -112,6 +124,8 @@ def process_cv_results(cv_results):
     """
     results = pd.DataFrame(cv_results)
     cols = ['mean_test_score', 'mean_train_score', 'std_test_score']
+    if 'mean_train_score' not in cv_results.keys():
+        cols = ['mean_test_score', 'std_test_score']
     cols += [c for c in results.columns.values if c.startswith('param_')]
     return results[cols].sort_values(by='mean_test_score', ascending=False)
 
