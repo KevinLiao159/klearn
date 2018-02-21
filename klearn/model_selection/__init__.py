@@ -1,3 +1,5 @@
+from .metrics import top_bottom_percentile
+from .metrics import top_bottom_group_mean
 from .metrics import top_bottom_accuracy_score
 from .metrics import top_bottom_precision_score
 from .metrics import top_bottom_recall_score
@@ -30,7 +32,9 @@ from .split import group_train_test_split
 from .split import ts_predefined_split
 
 
-__all__ = ['top_bottom_accuracy_score',
+__all__ = ['top_bottom_percentile',
+           'top_bottom_group_mean',
+           'top_bottom_accuracy_score',
            'top_bottom_precision_score',
            'top_bottom_recall_score',
            'top_bottom_f1_score',

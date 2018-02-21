@@ -18,7 +18,9 @@ from sklearn.metrics import mean_squared_error
 from gravity_learn.utils import force_array, check_consistent_length
 
 
-__all__ = ('top_bottom_accuracy_score',
+__all__ = ('top_bottom_percentile',
+           'top_bottom_group_mean',
+           'top_bottom_accuracy_score',
            'top_bottom_precision_score',
            'top_bottom_recall_score',
            'top_bottom_f1_score',
@@ -100,6 +102,143 @@ def _select_top_and_bottom(y_true, y_score,
     y_score_ext = y_score[filter_idx]
     y_pred_ext = y_score_ext[:, 1] >= 0.5
     return y_true_ext, y_score_ext, y_pred_ext
+
+
+def top_bottom_percentile(y_true, y_score, n=50, top_or_bottom='top',
+                          percentile=50, interpolation='midpoint'):
+    """
+    qth percentile value in top/bottom n of y_true
+    score = qth in top - qth in bottom
+
+    Parameters
+    ----------
+    y_true : 1d array-like, continues values
+
+    y_score : array, shape = [n_samples] or [n_samples, n_classes]
+        Target scores, can either be probability estimates of the positive
+        class, confidence values, or non-thresholded measure of decisions
+        (as returned by "decision_function" on some classifiers).
+
+    n : float, int, or None, default 50.
+        If int, it filters top/bottom n samples
+        If float, it should be between 0.0 and 0.5 and it filters top/bottom x
+        percentage of the entire data
+
+    top_or_bottom : str, one of ['top', 'bottom']
+
+    percentile : float in range of [0,100] (or sequence of floats)
+        Percentile to compute, which must be between 0 and 100 inclusive
+
+    interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
+        New in version 0.18.0.
+        This optional parameter specifies the interpolation method to use,\
+        when the desired percentile lies between two data points i and j:
+        linear: i + (j - i) * fraction, where fraction is the fractional part\
+        of the index surrounded by i and j.
+        lower: i.
+        higher: j.
+        nearest: i or j whichever is nearest.
+        midpoint: (i + j) / 2
+
+    Returns
+    -------
+    diff in qth in top & bottom, float
+    """
+    allowed = ['top', 'bottom']
+    if top_or_bottom.lower() not in allowed:
+        raise ValueError('top_or_bottom must be one of {}'.format(allowed))
+    if top_or_bottom.lower() == 'top':
+        y_true_ext, y_score_ext, y_pred_ext =\
+            _select_top_and_bottom(
+                y_true=y_true,
+                y_score=y_score,
+                top=n,
+                bottom=0,
+                interpolation=interpolation
+            )
+    else:
+        y_true_ext, y_score_ext, y_pred_ext =\
+            _select_top_and_bottom(
+                y_true=y_true,
+                y_score=y_score,
+                top=0,
+                bottom=n,
+                interpolation=interpolation
+            )
+    return np.percentile(
+        a=y_true_ext,
+        q=percentile,
+        interpolation=interpolation)
+
+
+def top_bottom_group_mean(y_true, y_score, n=50, top_or_bottom='top',
+                          top_position=0, bottom_position=5,
+                          interpolation='midpoint'):
+    """
+    average of y_true values in range of [top_position, bottom_position]
+
+    Parameters
+    ----------
+    y_true : 1d array-like, continues values
+
+    y_score : array, shape = [n_samples] or [n_samples, n_classes]
+        Target scores, can either be probability estimates of the positive
+        class, confidence values, or non-thresholded measure of decisions
+        (as returned by "decision_function" on some classifiers).
+
+    n : float, int, or None, default 50.
+        If int, it filters top/bottom n samples
+        If float, it should be between 0.0 and 0.5 and it filters top/bottom x
+        percentage of the entire data
+
+    top_or_bottom : str, one of ['top', 'bottom']
+
+    top_position : float in range of [0, n-1] (or sequence of floats)
+
+    bottom_position : float in range of [1, n] (or sequence of floats)
+
+    interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
+        New in version 0.18.0.
+        This optional parameter specifies the interpolation method to use,\
+        when the desired percentile lies between two data points i and j:
+        linear: i + (j - i) * fraction, where fraction is the fractional part\
+        of the index surrounded by i and j.
+        lower: i.
+        higher: j.
+        nearest: i or j whichever is nearest.
+        midpoint: (i + j) / 2
+
+    Returns
+    -------
+    diff in qth in top & bottom, float
+    """
+    allowed = ['top', 'bottom']
+    if top_or_bottom.lower() not in allowed:
+        raise ValueError('top_or_bottom must be one of {}'.format(allowed))
+    if bottom_position <= top_position:
+        raise ValueError('bottom_position must be strictly '
+                         'greater than top_position')
+    if top_or_bottom.lower() == 'top':
+        y_true_ext, y_score_ext, y_pred_ext =\
+            _select_top_and_bottom(
+                y_true=y_true,
+                y_score=y_score,
+                top=n,
+                bottom=0,
+                interpolation=interpolation
+            )
+        group = np.sort(y_true_ext)[::-1][top_position: bottom_position]
+    else:
+        y_true_ext, y_score_ext, y_pred_ext =\
+            _select_top_and_bottom(
+                y_true=y_true,
+                y_score=y_score,
+                top=0,
+                bottom=n,
+                interpolation=interpolation
+            )
+        group = np.sort(y_true_ext)[top_position: bottom_position]
+    return np.mean(group)
 
 
 def top_bottom_accuracy_score(y_true, y_score, top=50, bottom=50,

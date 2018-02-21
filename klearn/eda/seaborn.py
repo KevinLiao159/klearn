@@ -696,19 +696,15 @@ class SeabornPlot(Loggable):
             if col not in data.columns.values:
                 raise ValueError('{} is NOT in data'.format(col))
             a = data[col]
+            not_nan = np.ones(a.shape[0], dtype=np.bool)
             if np.logical_not(np.isfinite(a)).any():
                 logger.warning('RUNTIME WARNING: {} column has inf or nan '
                                ''.format(col))
                 a = a.replace([-np.inf, np.inf], np.nan)
                 # filter
                 not_nan = np.logical_not(a.isnull())
-                a = a[not_nan]
-                if x is not None:
-                    x = data[x][not_nan]
-                if hue is not None:
-                    hue = data[hue][not_nan]
-
-            sns.boxplot(x=x, y=a, hue=hue, data=data, ax=axes[i],
+            # plot
+            sns.boxplot(x=x, y=col, hue=hue, data=data[not_nan], ax=axes[i],
                         *args, **kwargs)
             if x is not None:
                 axes[i].set_title(
@@ -832,19 +828,15 @@ class SeabornPlot(Loggable):
             if col not in data.columns.values:
                 raise ValueError('{} is NOT in data'.format(col))
             a = data[col]
+            not_nan = np.ones(a.shape[0], dtype=np.bool)
             if np.logical_not(np.isfinite(a)).any():
                 logger.warning('RUNTIME WARNING: {} column has inf or nan '
                                ''.format(col))
                 a = a.replace([-np.inf, np.inf], np.nan)
                 # filter
                 not_nan = np.logical_not(a.isnull())
-                a = a[not_nan]
-                if x is not None:
-                    x = data[x][not_nan]
-                if hue is not None:
-                    hue = data[hue][not_nan]
-
-            sns.violinplot(x=x, y=a, hue=hue, data=data, ax=axes[i],
+            # plot
+            sns.violinplot(x=x, y=col, hue=hue, data=data[not_nan], ax=axes[i],
                            *args, **kwargs)
             if x is not None:
                 axes[i].set_title(
