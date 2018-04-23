@@ -136,7 +136,6 @@ class TSBFold(BaseCrossValidator):
 #  Single Split CV Functions
 # --------------------------------------------------
 
-
 def ts_train_test_split(X=None, y=None, groups=None, train_window=None,
                         buff_window=380, test_window=365):
     """

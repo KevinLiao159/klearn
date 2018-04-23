@@ -28,7 +28,8 @@ logger = get_logger('models.trainers')
 __all__ = ['Trainer',
            'GeneralTrainer',
            'CalibratedTrainer',
-           'GravityTrainer']
+           'GravityTrainer',
+           'gravity_evaluate']
 
 
 class _BaseTrainer(object):
@@ -221,6 +222,9 @@ class _BaseTrainer(object):
         else:  # kind == 'proba'
             check_has_set_attr(self, 'probas_dict')
             y_hat_dict = self.probas_dict
+            for i, y_probas in y_hat_dict.items():
+                if np.dim(y_probas) == 2:
+                    y_hat_dict[i] = y_probas[:, -1]
         # check y
         if y is None:
             raise ValueError('You must pass in y')
@@ -674,7 +678,11 @@ class GravityTrainer(GeneralTrainer):
         # join out of sample probas with out of sample groud truth
         check_has_set_attr(self, 'proba_out_of_sample')
         check_gravity_index(self.proba_out_of_sample)
-        df_join = self.proba_out_of_sample.join(y)
+        # check ndim of self.proba_out_of_sample
+        if np.ndim(self.proba_out_of_sample) == 2:
+            df_join = self.proba_out_of_sample.iloc[:, -1:].join(y, how='left')
+        else:  # else if ndim is 1
+            df_join = self.proba_out_of_sample.join(y, how='left')
         # check scoring
         if scoring is None:
             scoring = {'accuracy': top_bottom_accuracy_score}
@@ -685,8 +693,80 @@ class GravityTrainer(GeneralTrainer):
             # get scores for every point on level
             scores_list = df_join.groupby(level=level).apply(
                 lambda df: score(
-                    df.iloc[:, -1],
-                    df.iloc[:, :-1],
+                    df.iloc[:, 1],
+                    df.iloc[:, 0],
+                    **score_kwargs)
+            ).values
+            # save scores with score name in score_dict
+            score_dict = {
+                **score_dict,
+                **{name: scores_list}
+            }
+        # aggregator
+        if aggregator:
+            score_dict = {
+                name: aggregator(scores)
+                for (name, scores) in score_dict.items() if name != level
+            }
+        return score_dict
+
+
+def gravity_evaluate(df_true, df_score, level='date', scoring=None,
+                     aggregator=None, **score_kwargs):
+        """
+        This is a wrapper function for quick scoring
+        NOTE it is specifically for gravity research
+
+        Parameters
+        ----------
+        df_true : dataframe, gravity outcomes data with gravity index
+
+        df_score : dataframe, gravity trainer out of sample probas with \
+            gravity index
+
+        level : str, one of ['date', 'tradingitemid']
+
+        scoring : dictionary with {metrics name: metrics callable}
+            eg. {'accuracy': sklearn.metrics.accuracy_score}
+            Default is top_bottom_accuracy_score
+
+        aggregator: a function or a callable, to aggregate a vector
+
+        **score_kwargs : this is passed to metrics callable
+
+        Returns
+        -------
+        score_dict : a dictionary of score
+            eg. {
+                    'level': ['2007-01-05', '2007-01-12', '2007-01-19'],
+                    'accuracy': [0.84, 0.92, 0.86],
+                    'roc_auc': [0.72, 0.77, 0.73]
+                }
+        """
+        allowed_level = ['date', 'tradingitemid']
+        if level not in allowed_level:
+            raise ValueError('level must be one of {}'.format(allowed_level))
+        # check input data
+        check_consistent_length(df_true, df_score)
+        check_gravity_index(df_true)
+        check_gravity_index(df_score)
+        # check ndim of df_score
+        if np.ndim(df_score) == 2:
+            df_join = df_score.iloc[:, -1:].join(df_true, how='left')
+        else:  # else if ndim is 1
+            df_join = df_score.join(df_true, how='left')
+        # check scoring
+        if scoring is None:
+            scoring = {'accuracy': top_bottom_accuracy_score}
+        # score out of sample
+        score_dict = \
+            {level: df_join.index.get_level_values(level).unique().values}
+        for name, score in scoring.items():
+            # get scores for every point on level
+            scores_list = df_join.groupby(level=level).apply(
+                lambda df: score(
+                    df.iloc[:, 1],
+                    df.iloc[:, 0],
                     **score_kwargs)
             ).values
             # save scores with score name in score_dict

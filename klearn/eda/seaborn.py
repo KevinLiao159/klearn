@@ -147,12 +147,12 @@ class SeabornPlot(Loggable):
                 logger.warning('RUNTIME WARNING: {} column has inf or nan '
                                ''.format(col))
                 a = a.replace([-np.inf, np.inf], np.nan).dropna()
-            sns.distplot(a=a, data=data, ax=axes[i], *args, **kwargs)
+            sns.distplot(a=a, ax=axes[i], *args, **kwargs)
             axes[i].set_title(
                 label='Univariate Distribution of {}'.format(col),
                 fontsize=self.title_fontsize)
             axes[i].set_xlabel(xlabel=col, fontsize=self.label_fontsize)
-            axes[i].set_ylabel(ylabel='frequency',
+            axes[i].set_ylabel(ylabel='percentage (%)',
                                fontsize=self.label_fontsize)
             axes[i].tick_params(axis='both',
                                 which='maj',
@@ -167,6 +167,7 @@ class SeabornPlot(Loggable):
             )
             fig.tight_layout()
         plt.show()
+        return axes
 
     # --------------------------------------------------
     #  Joint Distribution Plots
@@ -220,7 +221,7 @@ class SeabornPlot(Loggable):
 
         References
         ----------
-        Seaborn distplot further documentation
+        Seaborn kdeplot further documentation
         https://seaborn.pydata.org/generated/seaborn.kdeplot.html
         """
         # check data
@@ -325,6 +326,7 @@ class SeabornPlot(Loggable):
                 )
                 fig.tight_layout()
         plt.show()
+        return axes
 
     def jointplot(self, x=None, y=None, data=None, *args, **kwargs):
         """
@@ -366,7 +368,7 @@ class SeabornPlot(Loggable):
 
         References
         ----------
-        Seaborn distplot further documentation
+        Seaborn jointplot further documentation
         https://seaborn.pydata.org/generated/seaborn.jointplot.html
         """
         # check data
@@ -521,7 +523,7 @@ class SeabornPlot(Loggable):
 
         References
         ----------
-        Seaborn distplot further documentation
+        Seaborn lmplot further documentation
         https://seaborn.pydata.org/generated/seaborn.seaborn.lmplot
         """
         # check data
@@ -579,7 +581,7 @@ class SeabornPlot(Loggable):
                     hue=hue,
                     legend=True,
                     legend_out=False,
-                    size=self.size[0],
+                    # size=self.size[0],
                     *args, **kwargs)
 
                 joint_grid.fig.axes[0].set_title(
@@ -659,7 +661,7 @@ class SeabornPlot(Loggable):
 
         References
         ----------
-        Seaborn distplot further documentation
+        Seaborn boxplot further documentation
         https://seaborn.pydata.org/generated/seaborn.boxplot.html
         """
         # check data
@@ -735,11 +737,12 @@ class SeabornPlot(Loggable):
             )
             fig.tight_layout()
         plt.show()
+        return axes
 
     def violinplot(self, x=None, y=None, hue=None, data=None,
                    *args, **kwargs):
         """
-        Draw a box plot to show distributions with respect to categories
+        Draw a violin plot to show distributions with respect to categories
 
         Parameters
         ----------
@@ -753,7 +756,7 @@ class SeabornPlot(Loggable):
 
         data : pandas dataframe
 
-        **kwargs : other arguments in seaborn.distplot
+        **kwargs : other arguments in seaborn.violinplot
 
             order, hue_order : lists of strings, optional
 
@@ -791,7 +794,7 @@ class SeabornPlot(Loggable):
 
         References
         ----------
-        Seaborn distplot further documentation
+        Seaborn violinplot further documentation
         https://seaborn.pydata.org/generated/seaborn.violinplot.html
         """
         # check data
@@ -867,6 +870,377 @@ class SeabornPlot(Loggable):
             )
             fig.tight_layout()
         plt.show()
+        return axes
+
+    def barplot(self, x=None, y=None, hue=None, data=None,
+                *args, **kwargs):
+        """
+        Draw a bar plot to show point estimates and confidence intervals \
+        with respect to categories
+
+        Parameters
+        ----------
+        x : the name of a variable in data that provides labels for categories
+
+        y : a list of names of variables in data that needs to estimate
+
+        hue : the name of a variable in data that provides labels for \
+            sub-categories in each big category
+
+        data : pandas dataframe
+
+        **kwargs : other arguments in seaborn.barplot
+
+            order, hue_order : lists of strings, optional
+
+            estimator : callable that maps vector -> scalar, optional
+
+            ci : float or “sd” or None, optional
+
+            n_boot : int, optiona
+
+            units : name of variable in data or vector data, optional
+
+            orient : 'v' | 'h', optional
+
+            color : matplotlib color, optional
+
+            palette : palette name, list, or dict, optional
+
+            saturation : float, optional
+
+            errcolor : matplotlib color
+
+            errwidth : float, optional
+
+            capsize : float, optional
+
+            dodge : bool, optional
+
+        Returns
+        -------
+        figure : matplotlib figure with multiple axes
+
+        References
+        ----------
+        Seaborn barplot further documentation
+        https://seaborn.pydata.org/generated/seaborn.barplot.html
+        """
+        # check data
+        if not isinstance(data, (pd.DataFrame)):
+            raise ValueError('data must be pandas dataframe')
+
+        # check x and hue
+        if x is not None:
+            if x not in data.columns.values:
+                raise ValueError('{} is NOT in data'.format(x))
+        if hue is not None:
+            if hue not in data.columns.values:
+                raise ValueError('{} is NOT in data'.format(hue))
+
+        # handle single string
+        if not isinstance(y, (list, tuple, np.ndarray, pd.Index)):
+            y = [y]
+
+        # create fig and axes
+        nrows = len(y)
+        plt.close()
+        fig, axes = plt.subplots(
+            nrows=nrows,
+            ncols=1,
+            sharex=self.sharex,
+            figsize=(self.size[0], nrows * self.size[1])
+        )
+        # HACK: handle Axes indexing when only one ax in fig
+        if nrows == 1:
+            axes = [axes]
+        # iterate thru x
+        for i, col in enumerate(y):
+            # check if col in data
+            if col not in data.columns.values:
+                raise ValueError('{} is NOT in data'.format(col))
+            a = data[col]
+            not_nan = np.ones(a.shape[0], dtype=np.bool)
+            if np.logical_not(np.isfinite(a)).any():
+                logger.warning('RUNTIME WARNING: {} column has inf or nan '
+                               ''.format(col))
+                a = a.replace([-np.inf, np.inf], np.nan)
+                # filter
+                not_nan = np.logical_not(a.isnull())
+            # plot
+            sns.barplot(x=x, y=col, hue=hue, data=data[not_nan], ax=axes[i],
+                        *args, **kwargs)
+            if x is not None:
+                axes[i].set_title(
+                    label='Bar Plot of {} With Respect To {} '
+                          ''.format(col, x),
+                    fontsize=self.title_fontsize)
+                axes[i].set_xlabel(xlabel=x, fontsize=self.label_fontsize)
+                axes[i].set_ylabel(ylabel=col,
+                                   fontsize=self.label_fontsize)
+            else:  # x is None
+                axes[i].set_title(
+                    label='Bar Plot of {}'.format(col),
+                    fontsize=self.title_fontsize)
+                axes[i].set_xlabel(xlabel=col, fontsize=self.label_fontsize)
+                axes[i].set_ylabel(ylabel='value',
+                                   fontsize=self.label_fontsize)
+            axes[i].tick_params(axis='both',
+                                which='maj',
+                                labelsize=self.tick_fontsize)
+            axes[i].legend(loc='lower right')
+            fig.subplots_adjust(
+                wspace=0.5,
+                hspace=0.3,
+                left=0.125,
+                right=0.9,
+                top=0.9,
+                bottom=0.1
+            )
+            fig.tight_layout()
+        plt.show()
+        return axes
+
+    def countplot(self, x=None, y=None, hue=None, data=None,
+                  *args, **kwargs):
+        """
+        Draw a bar plot to show the counts of observations in each \
+        categorical bin using bars
+
+        Parameters
+        ----------
+        x : the name of a variable in data that provides labels for categories
+
+        y : a list of names of variables in data that needs the count
+
+        hue : the name of a variable in data that provides labels for \
+            sub-categories in each big category
+
+        data : pandas dataframe
+
+        **kwargs : other arguments in seaborn.barplot
+
+            order, hue_order : lists of strings, optional
+
+            orient : 'v' | 'h', optional
+
+            color : matplotlib color, optional
+
+            palette : palette name, list, or dict, optional
+
+            saturation : float, optional
+
+            dodge : bool, optional
+
+        Returns
+        -------
+        figure : matplotlib figure with multiple axes
+
+        References
+        ----------
+        Seaborn countplot further documentation
+        https://seaborn.pydata.org/generated/seaborn.countplot.html
+        """
+        # check data
+        if not isinstance(data, (pd.DataFrame)):
+            raise ValueError('data must be pandas dataframe')
+
+        # check x and hue
+        if x is not None:
+            if x not in data.columns.values:
+                raise ValueError('{} is NOT in data'.format(x))
+        if hue is not None:
+            if hue not in data.columns.values:
+                raise ValueError('{} is NOT in data'.format(hue))
+
+        # handle single string
+        if not isinstance(y, (list, tuple, np.ndarray, pd.Index)):
+            y = [y]
+
+        # create fig and axes
+        nrows = len(y)
+        plt.close()
+        fig, axes = plt.subplots(
+            nrows=nrows,
+            ncols=1,
+            sharex=self.sharex,
+            figsize=(self.size[0], nrows * self.size[1])
+        )
+        # HACK: handle Axes indexing when only one ax in fig
+        if nrows == 1:
+            axes = [axes]
+        # iterate thru x
+        for i, col in enumerate(y):
+            # check if col in data
+            if col not in data.columns.values:
+                raise ValueError('{} is NOT in data'.format(col))
+            a = data[col]
+            not_nan = np.ones(a.shape[0], dtype=np.bool)
+            if np.logical_not(np.isfinite(a)).any():
+                logger.warning('RUNTIME WARNING: {} column has inf or nan '
+                               ''.format(col))
+                a = a.replace([-np.inf, np.inf], np.nan)
+                # filter
+                not_nan = np.logical_not(a.isnull())
+            # plot
+            sns.barplot(x=x, y=col, hue=hue, data=data[not_nan], ax=axes[i],
+                        *args, **kwargs)
+            if x is not None:
+                axes[i].set_title(
+                    label='Count Plot of {} With Respect To {} '
+                          ''.format(col, x),
+                    fontsize=self.title_fontsize)
+                axes[i].set_xlabel(xlabel=x, fontsize=self.label_fontsize)
+                axes[i].set_ylabel(ylabel=col,
+                                   fontsize=self.label_fontsize)
+            else:  # x is None
+                axes[i].set_title(
+                    label='Count Plot of {}'.format(col),
+                    fontsize=self.title_fontsize)
+                axes[i].set_xlabel(xlabel=col, fontsize=self.label_fontsize)
+                axes[i].set_ylabel(ylabel='value',
+                                   fontsize=self.label_fontsize)
+            axes[i].tick_params(axis='both',
+                                which='maj',
+                                labelsize=self.tick_fontsize)
+            axes[i].legend(loc='lower right')
+            fig.subplots_adjust(
+                wspace=0.5,
+                hspace=0.3,
+                left=0.125,
+                right=0.9,
+                top=0.9,
+                bottom=0.1
+            )
+            fig.tight_layout()
+        plt.show()
+        return axes
+
+    def stripplot(self, x=None, y=None, hue=None, data=None,
+                  *args, **kwargs):
+        """
+        Draw a strip plot to show the distribution of observations in each \
+        categorical bin using bars.
+        It is also a good complement to a box or violin plot in cases where \
+        you want to show all observations along with some representation of \
+        the underlying distribution
+
+        Parameters
+        ----------
+        x : the name of a variable in data that provides labels for categories
+
+        y : a list of names of variables in data that needs the count
+
+        hue : the name of a variable in data that provides labels for \
+            sub-categories in each big category
+
+        data : pandas dataframe
+
+        **kwargs : other arguments in seaborn.barplot
+
+            order, hue_order : lists of strings, optional
+
+            jitter : float, True/1 is special-cased, optional.
+                     Amount of jitter (only along the categorical axis) \
+                     to apply
+
+            split : bool, optional
+
+            orient : “v” | “h”, optional
+
+            color : matplotlib color, optional
+
+            palette : palette name, list, or dict, optional
+
+            size : float, optional
+
+            edgecolor : matplotlib color, “gray” is special-cased, optional
+
+            linewidth : float, optional
+
+        Returns
+        -------
+        figure : matplotlib figure with multiple axes
+
+        References
+        ----------
+        Seaborn stripplot further documentation
+        https://seaborn.pydata.org/generated/seaborn.stripplot.html
+        """
+        # check data
+        if not isinstance(data, (pd.DataFrame)):
+            raise ValueError('data must be pandas dataframe')
+
+        # check x and hue
+        if x is not None:
+            if x not in data.columns.values:
+                raise ValueError('{} is NOT in data'.format(x))
+        if hue is not None:
+            if hue not in data.columns.values:
+                raise ValueError('{} is NOT in data'.format(hue))
+
+        # handle single string
+        if not isinstance(y, (list, tuple, np.ndarray, pd.Index)):
+            y = [y]
+
+        # create fig and axes
+        nrows = len(y)
+        plt.close()
+        fig, axes = plt.subplots(
+            nrows=nrows,
+            ncols=1,
+            sharex=self.sharex,
+            figsize=(self.size[0], nrows * self.size[1])
+        )
+        # HACK: handle Axes indexing when only one ax in fig
+        if nrows == 1:
+            axes = [axes]
+        # iterate thru x
+        for i, col in enumerate(y):
+            # check if col in data
+            if col not in data.columns.values:
+                raise ValueError('{} is NOT in data'.format(col))
+            a = data[col]
+            not_nan = np.ones(a.shape[0], dtype=np.bool)
+            if np.logical_not(np.isfinite(a)).any():
+                logger.warning('RUNTIME WARNING: {} column has inf or nan '
+                               ''.format(col))
+                a = a.replace([-np.inf, np.inf], np.nan)
+                # filter
+                not_nan = np.logical_not(a.isnull())
+            # plot
+            sns.stripplot(x=x, y=col, hue=hue, data=data[not_nan], ax=axes[i],
+                          *args, **kwargs)
+            if x is not None:
+                axes[i].set_title(
+                    label='Stripplot Plot of {} With Respect To {} '
+                          ''.format(col, x),
+                    fontsize=self.title_fontsize)
+                axes[i].set_xlabel(xlabel=x, fontsize=self.label_fontsize)
+                axes[i].set_ylabel(ylabel=col,
+                                   fontsize=self.label_fontsize)
+            else:  # x is None
+                axes[i].set_title(
+                    label='Stripplot Plot of {}'.format(col),
+                    fontsize=self.title_fontsize)
+                axes[i].set_xlabel(xlabel=col, fontsize=self.label_fontsize)
+                axes[i].set_ylabel(ylabel='value',
+                                   fontsize=self.label_fontsize)
+            axes[i].tick_params(axis='both',
+                                which='maj',
+                                labelsize=self.tick_fontsize)
+            axes[i].legend(loc='lower right')
+            fig.subplots_adjust(
+                wspace=0.5,
+                hspace=0.3,
+                left=0.125,
+                right=0.9,
+                top=0.9,
+                bottom=0.1
+            )
+            fig.tight_layout()
+        plt.show()
+        return axes
 
     # --------------------------------------------------
     #  Regression Plots

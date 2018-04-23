@@ -18,8 +18,10 @@ from sklearn.metrics import mean_squared_error
 from gravity_learn.utils import force_array, check_consistent_length
 
 
-__all__ = ('top_bottom_percentile',
+__all__ = ('top_bottom_winner_pct',
+           'top_bottom_percentile',
            'top_bottom_group_mean',
+           'top_bottom_group_std',
            'top_bottom_accuracy_score',
            'top_bottom_precision_score',
            'top_bottom_recall_score',
@@ -29,8 +31,10 @@ __all__ = ('top_bottom_percentile',
            'root_mean_squared_error',
            'mean_absolute_percentage_error')
 
+# NOTE metrics below are for binary classification
+
 # --------------------------------------------------
-#  Classification metrics
+#  Gravity metrics
 # --------------------------------------------------
 
 
@@ -44,14 +48,14 @@ def _select_top_and_bottom(y_true, y_score,
     y_true : array, shape = [n_samples] or [n_samples, ]
         True binary labels in binary label indicators.
 
-    y_score : array, shape = [n_samples] or [n_samples, 2]
+    y_score : array, shape = [n_samples, ]
         Target scores, can either be probability estimates of the positive
         class, confidence values, or binary decisions.
 
     top, bottom : float, int, or None, default 50.
         If int, it filters top/bottom n samples
-        If float, it should be between 0.0 and 0.5 and it filters top/bottom x
-        percentage of the entire data
+        If float, it should be between 0.0 and 1.0 and it filters top/bottom x
+        percentage of the each class data
 
     interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
         New in version 0.18.0.
@@ -81,27 +85,93 @@ def _select_top_and_bottom(y_true, y_score,
     check_consistent_length(y_true, y_score)
     y_true = force_array(y_true)
     y_score = force_array(y_score)
-    n_samples = len(y_true)
+    n_samples_class_zero = np.sum(y_score < 0.5)
+    n_samples_class_one = np.sum(y_score >= 0.5)
     # convert float to int for top and bottom
     if isinstance(top, float):
-        if not (0 < top < 0.5):
-            raise ValueError('Warning! top is out of the range (0, 0.5)')
-        top = int(round(top * n_samples))
+        if not (0 < top <= 1.0):
+            raise ValueError('Warning! top is out of the range (0, 1.0)')
+        top = int(round(top * n_samples_class_one))
     if isinstance(bottom, float):
-        if not (0 < bottom < 0.5):
-            raise ValueError('Warning! bottom is out of the range (0, 0.5)')
-        bottom = int(round(bottom * n_samples))
-    # get P1 (label one)
-    p_one = y_score[:, 1]
+        if not (0 < bottom <= 1.0):
+            raise ValueError('Warning! bottom is out of the range (0, 1.0)')
+        bottom = int(round(bottom * n_samples_class_zero))
     # filter top and bottom
-    top_idx = np.argsort(p_one)[::-1][:top]
-    bottom_idx = np.argsort(p_one)[:bottom]
+    top_idx = np.argsort(y_score)[::-1][:top]
+    bottom_idx = np.argsort(y_score)[:bottom]
     filter_idx = np.sort(np.concatenate([top_idx, bottom_idx]))
     # filtering
     y_true_ext = y_true[filter_idx]
     y_score_ext = y_score[filter_idx]
-    y_pred_ext = y_score_ext[:, 1] >= 0.5
+    y_pred_ext = y_score_ext >= 0.5
     return y_true_ext, y_score_ext, y_pred_ext
+
+
+def top_bottom_winner_pct(y_true, y_score, n=50, top_or_bottom='top',
+                          interpolation='midpoint'):
+    """
+    calculate the percentage of 'True' in y_true of top or \
+    the percentage of 'False' in y_true of bottom
+    winner_pct = num 'True' / num n, for 'top'
+    winner_pct = num 'False' / num n, for 'bottom'
+
+    Parameters
+    ----------
+    y_true : 1d array-like, bool, [True, False]
+
+    y_score : array, shape = [n_samples] or [n_samples, n_classes]
+        Target scores, can either be probability estimates of the positive
+        class, confidence values, or non-thresholded measure of decisions
+        (as returned by "decision_function" on some classifiers).
+
+    n : float, int, or None, default 50.
+        If int, it filters top/bottom n samples
+        If float, it should be between 0.0 and 0.5 and it filters top/bottom x
+        percentage of the entire data
+
+    top_or_bottom : str, one of ['top', 'bottom']
+
+    interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
+        New in version 0.18.0.
+        This optional parameter specifies the interpolation method to use,\
+        when the desired percentile lies between two data points i and j:
+        linear: i + (j - i) * fraction, where fraction is the fractional part\
+        of the index surrounded by i and j.
+        lower: i.
+        higher: j.
+        nearest: i or j whichever is nearest.
+        midpoint: (i + j) / 2
+
+    Returns
+    -------
+    pct of 'True' ('False') in y_true in n top (bottom), float
+    """
+    allowed = ['top', 'bottom']
+    if top_or_bottom.lower() not in allowed:
+        raise ValueError('top_or_bottom must be one of {}'.format(allowed))
+    if top_or_bottom.lower() == 'top':
+        y_true_ext, y_score_ext, y_pred_ext =\
+            _select_top_and_bottom(
+                y_true=y_true,
+                y_score=y_score,
+                top=n,
+                bottom=0,
+                interpolation=interpolation
+            )
+        num_winners = np.sum(y_true_ext)
+        num_n = len(y_true_ext)
+    else:
+        y_true_ext, y_score_ext, y_pred_ext =\
+            _select_top_and_bottom(
+                y_true=y_true,
+                y_score=y_score,
+                top=0,
+                bottom=n,
+                interpolation=interpolation
+            )
+        num_winners = np.sum(np.logical_not(y_true_ext))
+        num_n = len(y_true_ext)
+    return num_winners / num_n
 
 
 def top_bottom_percentile(y_true, y_score, n=50, top_or_bottom='top',
@@ -142,7 +212,7 @@ def top_bottom_percentile(y_true, y_score, n=50, top_or_bottom='top',
 
     Returns
     -------
-    diff in qth in top & bottom, float
+    value of qth location in y_true in n top or bottom, float
     """
     allowed = ['top', 'bottom']
     if top_or_bottom.lower() not in allowed:
@@ -210,7 +280,7 @@ def top_bottom_group_mean(y_true, y_score, n=50, top_or_bottom='top',
 
     Returns
     -------
-    diff in qth in top & bottom, float
+    average value of y_true in n top or bottom, float
     """
     allowed = ['top', 'bottom']
     if top_or_bottom.lower() not in allowed:
@@ -239,6 +309,81 @@ def top_bottom_group_mean(y_true, y_score, n=50, top_or_bottom='top',
             )
         group = np.sort(y_true_ext)[top_position: bottom_position]
     return np.mean(group)
+
+
+def top_bottom_group_std(y_true, y_score, n=50, top_or_bottom='top',
+                         top_position=0, bottom_position=5,
+                         interpolation='midpoint'):
+    """
+    average of y_true values in range of [top_position, bottom_position]
+
+    Parameters
+    ----------
+    y_true : 1d array-like, continues values
+
+    y_score : array, shape = [n_samples] or [n_samples, n_classes]
+        Target scores, can either be probability estimates of the positive
+        class, confidence values, or non-thresholded measure of decisions
+        (as returned by "decision_function" on some classifiers).
+
+    n : float, int, or None, default 50.
+        If int, it filters top/bottom n samples
+        If float, it should be between 0.0 and 0.5 and it filters top/bottom x
+        percentage of the entire data
+
+    top_or_bottom : str, one of ['top', 'bottom']
+
+    top_position : float in range of [0, n-1] (or sequence of floats)
+
+    bottom_position : float in range of [1, n] (or sequence of floats)
+
+    interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
+        New in version 0.18.0.
+        This optional parameter specifies the interpolation method to use,\
+        when the desired percentile lies between two data points i and j:
+        linear: i + (j - i) * fraction, where fraction is the fractional part\
+        of the index surrounded by i and j.
+        lower: i.
+        higher: j.
+        nearest: i or j whichever is nearest.
+        midpoint: (i + j) / 2
+
+    Returns
+    -------
+    average value of y_true in n top or bottom, float
+    """
+    allowed = ['top', 'bottom']
+    if top_or_bottom.lower() not in allowed:
+        raise ValueError('top_or_bottom must be one of {}'.format(allowed))
+    if bottom_position <= top_position:
+        raise ValueError('bottom_position must be strictly '
+                         'greater than top_position')
+    if top_or_bottom.lower() == 'top':
+        y_true_ext, y_score_ext, y_pred_ext =\
+            _select_top_and_bottom(
+                y_true=y_true,
+                y_score=y_score,
+                top=n,
+                bottom=0,
+                interpolation=interpolation
+            )
+        group = np.sort(y_true_ext)[::-1][top_position: bottom_position]
+    else:
+        y_true_ext, y_score_ext, y_pred_ext =\
+            _select_top_and_bottom(
+                y_true=y_true,
+                y_score=y_score,
+                top=0,
+                bottom=n,
+                interpolation=interpolation
+            )
+        group = np.sort(y_true_ext)[top_position: bottom_position]
+    return np.std(group)
+
+
+# --------------------------------------------------
+#  Classification metrics
+# --------------------------------------------------
 
 
 def top_bottom_accuracy_score(y_true, y_score, top=50, bottom=50,
@@ -641,10 +786,7 @@ def top_bottom_roc_auc_score(y_true, y_score, top=50, bottom=50,
             bottom=bottom,
             interpolation=interpolation
         )
-    # Need a hack here [:,1]
-    # TODO: need to handle pos_label in _binary_check
-    # TODO: need to revisit
-    return roc_auc_score(y_true=y_true_ext, y_score=y_score_ext[:, 1],
+    return roc_auc_score(y_true=y_true_ext, y_score=y_score_ext,
                          average=average, sample_weight=sample_weight)
 
 

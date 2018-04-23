@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import pickle
 from copy import deepcopy
-from sklearn.utils import check_array
+from sklearn.utils import check_array, shuffle
 from sklearn.utils.validation import check_is_fitted
 from sklearn.model_selection._split import check_cv
 
@@ -22,7 +22,8 @@ __all__ = ('check_gravity_index',
            'process_cv_results',
            'save_object',
            'load_object',
-           'check_cv')
+           'check_cv',
+           'shuffle')
 
 
 def check_gravity_index(df):

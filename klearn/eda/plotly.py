@@ -52,7 +52,11 @@ class PlotlyPlot(Loggable):
         if self.legend is None:
             self.legend = {}
 
-    def lineplot(self, x, y, legend_name=None, line_attribute=None):
+    def lineplot(self, x, y,
+                 legend_name=None, mode=None,
+                 line_attribute=None,
+                 marker_attribute=None,
+                 **kwargs):
         """plot line(s)
 
         Parameters
@@ -64,29 +68,68 @@ class PlotlyPlot(Loggable):
         legend_name: a name, or a list of names,
             must have same lenth as y
 
+        mode: a mode, or a list of modes,
+            must have same lenth as y
+            eg. 'lines+markers' or ['lines', 'markers']
+
         line_attribute: a dict, or a list of dictionaries,
             must have same lenth as y
-            eg. {'color': 'blue, 'dash': 'dot', 'width': 0.5}
+            eg. {'color': 'blue', 'dash': 'dot', 'width': 0.5}
+
+        marker_attribute: a dict, or a list of dictionaries,
+            must have same lenth as y
+            eg. {
+                    'size': 10,
+                    'color': 'rgba(255, 182, 193, .9)',
+                    'line': dict(width = 2)
+                }
+
+        **kwargs: a dictionary of additional params is passed in go.Scatter
 
         Returns
         -------
         A renderable plot
         """
-        allowed_vector_type = (list, pd.Series, np.ndarray, pd.DataFrame)
+        # make sure y is a list of vec
+        if not isinstance(y, list):
+            y = [y]
         # check if multiple vectors in y
+        allowed_vector_type = \
+            (list, pd.Series, np.ndarray, pd.DataFrame, pd.Index)
         if any(isinstance(vec, allowed_vector_type) for vec in y):
+            # name
             if legend_name is not None:
+                if not isinstance(legend_name, allowed_vector_type):
+                    legend_name = [legend_name] * len(y)
                 if len(legend_name) != len(y):
                     raise ValueError('length of legend_name must be the same as y') # noqa
             elif legend_name is None:
                 legend_name = \
                     list(np.linspace(0, len(y)-1, len(y)).astype(int))
-
+            # mode
+            if mode is not None:
+                if not isinstance(mode, allowed_vector_type):
+                    mode = [mode] * len(y)
+                if len(mode) != len(y):
+                    raise ValueError('length of mode must be the same as y') # noqa
+            elif mode is None:
+                mode = ['lines'] * len(y)
+            # line
             if line_attribute is not None:
+                if not isinstance(line_attribute, allowed_vector_type):
+                    line_attribute = [line_attribute] * len(y)
                 if len(line_attribute) != len(y):
                     raise ValueError('length of line_attribute must be the same as y') # noqa
             elif line_attribute is None:
                 line_attribute = [{}] * len(y)
+            # marker
+            if marker_attribute is not None:
+                if not isinstance(marker_attribute, allowed_vector_type):
+                    marker_attribute = [marker_attribute] * len(y)
+                if len(marker_attribute) != len(y):
+                    raise ValueError('length of marker_attribute must be the same as y') # noqa
+            elif marker_attribute is None:
+                marker_attribute = [{}] * len(y)
 
             # store data
             data = []
@@ -96,7 +139,10 @@ class PlotlyPlot(Loggable):
                         x=x,
                         y=vec,
                         name=legend_name[i],
-                        line=line_attribute[i]
+                        mode=mode[i],
+                        line=line_attribute[i],
+                        marker=marker_attribute[i],
+                        **kwargs
                     )
                 )
             layout = go.Layout(
@@ -118,7 +164,8 @@ class PlotlyPlot(Loggable):
 
     def lineplot_y2(self, x, y, y2, y2_title=None,
                     legend_name=None, line_attribute=None,
-                    legend_name2=None, line_attribute2=None):
+                    legend_name2=None, line_attribute2=None,
+                    **kwargs):
         """plot line(s)
 
         Parameters
@@ -145,21 +192,34 @@ class PlotlyPlot(Loggable):
             must have same lenth as y
             eg. {'color': 'blue, 'dash': 'dot', 'width': 0.5}
 
+        **kwargs: a dictionary of additional params is passed in go.Scatter
+
         Returns
         -------
         A renderable plot
         """
-        allowed_vector_type = (list, pd.Series, np.ndarray, pd.DataFrame)
+        # make sure y is a list of vec
+        if not isinstance(y, list):
+            y = [y]
+        if not isinstance(y2, list):
+            y2 = [y2]
         # check if multiple vectors in y
+        allowed_vector_type = \
+            (list, pd.Series, np.ndarray, pd.DataFrame, pd.Index)
         if any(isinstance(vec, allowed_vector_type) for vec in y):
+            # name
             if legend_name is not None:
+                if not isinstance(legend_name, allowed_vector_type):
+                    legend_name = [legend_name] * len(y)
                 if len(legend_name) != len(y):
                     raise ValueError('length of legend_name must be the same as y') # noqa
             elif legend_name is None:
                 legend_name = \
                     list(np.linspace(0, len(y)-1, len(y)).astype(int))
-
+            # line
             if line_attribute is not None:
+                if not isinstance(line_attribute, allowed_vector_type):
+                    line_attribute = [line_attribute] * len(y)
                 if len(line_attribute) != len(y):
                     raise ValueError('length of line_attribute must be the same as y') # noqa
             elif line_attribute is None:
@@ -167,7 +227,10 @@ class PlotlyPlot(Loggable):
 
         # check if multiple vectors in y2
         if any(isinstance(vec, allowed_vector_type) for vec in y2):
+            # name
             if legend_name2 is not None:
+                if not isinstance(legend_name2, allowed_vector_type):
+                    legend_name2 = [legend_name2] * len(y)
                 if len(legend_name2) != len(y2):
                     raise ValueError('length of legend_name2 must be the same as y2') # noqa
             elif legend_name2 is None:
@@ -175,8 +238,10 @@ class PlotlyPlot(Loggable):
                     np.linspace(0, len(y2)-1, len(y2)).astype(int)
                     + len(legend_name)
                 )
-
+            # line
             if line_attribute2 is not None:
+                if not isinstance(line_attribute2, allowed_vector_type):
+                    line_attribute2 = [line_attribute2] * len(y)
                 if len(line_attribute2) != len(y2):
                     raise ValueError('length of line_attribute2 must be the same as y2') # noqa
             elif line_attribute2 is None:
@@ -193,7 +258,8 @@ class PlotlyPlot(Loggable):
                         x=x,
                         y=vec,
                         name=legend_name[i],
-                        line=line_attribute[i]
+                        line=line_attribute[i],
+                        **kwargs
                     )
                 )
             for i, vec in enumerate(y2):
@@ -203,6 +269,7 @@ class PlotlyPlot(Loggable):
                         y=vec,
                         name=legend_name2[i],
                         line=line_attribute2[i],
+                        **kwargs,
                         yaxis='y2'
                     )
                 )
@@ -240,9 +307,9 @@ class PlotlyPlot(Loggable):
 
         Parameters
         ----------
-        y: a vector, or a list of vectors
-
         x: a vector
+
+        y: a vector, or a list of vectors
 
         legend_name: a name, or a list of names,
             must have same lenth as y
@@ -256,17 +323,26 @@ class PlotlyPlot(Loggable):
         -------
         A renderable plot
         """
-        allowed_vector_type = (list, pd.Series, np.ndarray, pd.DataFrame)
+        if not isinstance(y, list):
+            y = [y]
+
         # check if multiple vectors in y
+        allowed_vector_type = \
+            (list, pd.Series, np.ndarray, pd.DataFrame, pd.Index)
         if any(isinstance(vec, allowed_vector_type) for vec in y):
+            # name
             if legend_name is not None:
+                if not isinstance(legend_name, allowed_vector_type):
+                    legend_name = [legend_name] * len(y)
                 if len(legend_name) != len(y):
                     raise ValueError('length of legend_name must be the same as y') # noqa
             elif legend_name is None:
                 legend_name = \
                     list(np.linspace(0, len(y)-1, len(y)).astype(int))
-
+            # marker
             if marker_attribute is not None:
+                if not isinstance(marker_attribute, allowed_vector_type):
+                    marker_attribute = [marker_attribute] * len(y)
                 if len(marker_attribute) != len(y):
                     raise ValueError('length of marker_attribute must be the same as y') # noqa
             elif marker_attribute is None:

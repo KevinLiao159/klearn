@@ -14,6 +14,7 @@ from .trainers import Trainer
 from .trainers import GeneralTrainer
 from .trainers import CalibratedTrainer
 from .trainers import GravityTrainer
+from .trainers import gravity_evaluate
 
 
 __all__ = ('sigmoil',
@@ -31,4 +32,5 @@ __all__ = ('sigmoil',
            'Trainer',
            'GeneralTrainer',
            'CalibratedTrainer',
-           'GravityTrainer')
+           'GravityTrainer',
+           'gravity_evaluate')
