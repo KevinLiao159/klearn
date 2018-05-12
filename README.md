@@ -5,7 +5,7 @@
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/KevinLiao159/klearn/blob/master/LICENSE)
 
 ## Good Job!!! I am glad that you just found Klearn.
-Klearn is a Python module that speeds up data science or machine learning research work flow tremendously. It embraces the data science best practice and commits to empower data scientists. It holds several data science most-use modules, which includes but not limit to EDA module, feature engineering module, cross-validation strategy, hold-out data scoring, and model ensembling.
+Klearn is a Python module that speeds up data science or machine learning research work flow tremendously. It embraces the best data science practices and commits to empower data scientists. It holds several data science most-use modules, which includes but not limit to EDA module, feature engineering module, cross-validation strategy, hold-out data scoring, and model ensembling.
 
 Klearn is compatible with: __Python 2.7-3.6__.
 
@@ -29,7 +29,7 @@ Klearn is compatible with: __Python 2.7-3.6__.
 
 ## Module structure
 
-The main directories of this repository are:
+The main modules of Klearn API are:
 * `datasets`, which is responsible for dumping data in certain format
 * `eda`, which is responsible for data visualization and exploratory analysis
 * `ensemble`, which is reponsible for combining models together
