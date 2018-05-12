@@ -1,19 +1,28 @@
-from setuptools import setup, find_packages
+from setuptools import setup
+from setuptools import find_packages
 
 setup(
     name='klearn',
     version='0.0.1',
-    description='''Sci-Kit Learn Add-on''',
+    description='''Data Science and Machine Learning Tool Kits''',
     author='Kevin Liao',
     author_email='kevin.lwk.liao@gmail.com',
-    packages=find_packages(),
+    license='MIT',
     install_requires=[
-        'pandas==0.20.1',
-        'scikit-learn==0.19.1',
-        # 'seaborn==0.8.1',
-        # 'plotly==2.2.3',
-        # 'xgboost==0.6a2'
+        'numpy>=1.9.1',
+        'scipy>=0.14',
+        'pandas>=0.20.1',
+        'scikit-learn>=0.19.1',
+        'statsmodels>=0.8.0',
+        # 'xgboost==0.7.post4'
     ],
+    extras_require={
+        'visualize': [
+            'seaborn>=0.8.1',
+            'plotly>=2.2.3',
+            ],
+    },
     dependency_links=[],
-    platforms='any'
+    platforms='any',
+    packages=find_packages(),
 )

@@ -1,4 +1,4 @@
-# klearn
+# Klearn: Data Science and Machine Learning Tool Kits for Kagglers
 
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/KevinLiao159/klearn/blob/master/LICENSE)
 
