@@ -22,7 +22,7 @@ from gravity_learn.utils import (check_gravity_index,
                                  check_cv)
 from gravity_learn.logger import get_logger
 
-logger = get_logger('models.trainers')
+logger = get_logger(__name__)
 
 
 __all__ = ['Trainer',
@@ -32,7 +32,7 @@ __all__ = ['Trainer',
            'gravity_evaluate']
 
 
-class _BaseTrainer(object):
+class _BaseTrainer(metaclass=abc.ABCMeta):
     """
     Base class for trainers, trainers implement train, save_predictions, \
     save_probas, save_models, and evaluate
@@ -58,7 +58,7 @@ class _BaseTrainer(object):
 
         save_location : directory path for saving trained models,
             out-of-sample predictions and out-of-sampel probas. If None,
-            current directory will be the save_location. Default is None
+            it won't write anything to disk
 
         cv : list of tuples of index for (train, test)
             eg. [
@@ -77,11 +77,12 @@ class _BaseTrainer(object):
             The verbosity level.
         """
         # set dir for pickling models
-        if save_location is None:
-            save_location = os.getcwd()
-        self.models_location = os.path.join(save_location, 'models')
-        self.predictions_location = os.path.join(save_location, 'predictions')           # noqa
-        self.probas_location = os.path.join(save_location, 'probas')
+        self.save_location = save_location
+        if self.save_location is not None:
+            self.models_location = os.path.join(self.save_location, 'models')
+            self.predictions_location = os.path.join(self.save_location, 'predictions')           # noqa
+            self.probas_location = os.path.join(self.save_location, 'probas')
+
         # init the cv
         if cv is None:
             logger.warning('If cv is None, '
@@ -98,16 +99,19 @@ class _BaseTrainer(object):
         self.verbose = verbose
 
     def save_model(self, model, name='model'):
+        check_has_set_attr(self, 'models_location')
         pathlib.Path(self.models_location).mkdir(parents=True, exist_ok=True)
         filepath = os.path.join(self.models_location, '{}.pkl'.format(name))
         save_object(model, filepath)
 
     def save_prediction(self, pred, name='prediction'):
+        check_has_set_attr(self, 'predictions_location')
         pathlib.Path(self.predictions_location).mkdir(parents=True, exist_ok=True)       # noqa
         filepath = os.path.join(self.predictions_location, '{}.pkl'.format(name))        # noqa
         save_object(pred, filepath)
 
     def save_proba(self, proba, name='proba'):
+        check_has_set_attr(self, 'probas_location')
         pathlib.Path(self.probas_location).mkdir(parents=True, exist_ok=True)
         filepath = os.path.join(self.probas_location, '{}.pkl'.format(name))             # noqa
         save_object(proba, filepath)
@@ -157,14 +161,13 @@ class _BaseTrainer(object):
         # set attribute
         self.is_trained = True
         # save object
-        if save_models + save_predictions + save_probas > 0:
-            self._save(
-                X=X,
-                y=y,
-                save_models=save_models,
-                save_predictions=save_predictions,
-                save_probas=save_probas
-            )
+        self._save(
+            X=X,
+            y=y,
+            save_models=save_models,
+            save_predictions=save_predictions,
+            save_probas=save_probas
+        )
         return self
 
     @abc.abstractmethod
@@ -311,46 +314,46 @@ class Trainer(_BaseTrainer):
         X = ensure_2d_array(X, axis=1)
         y = ensure_2d_array(y, axis=1)
         # check locations
-        if self.models_location is None:
-            save_models = False
-        if self.predictions_location is None:
-            save_predictions = False
-        if self.probas_location is None:
-            save_probas = False
-        if save_models + save_predictions + save_probas == 0:
+        if self.save_location is None:
             logger.warning('Warning! Nothing gets saved. '
-                           'Please check locations or cv')
+                           'Please reset save_location '
+                           'if you want to write results to disk')
         # save object
         self.preds_dict = {}
         self.probas_dict = {}
         for i, model in self.model_dict.items():
             # save model
-            if save_models:
+            if self.models_location and save_models:
                 self.save_model(model, name='model_{}'.format(i))
-            if save_predictions:
-                if hasattr(model, 'predict'):
-                    self.preds_dict = {
-                        **self.preds_dict,
-                        **{i: model.predict(X[self.cv[i][1]])}
-                    }
-                else:
-                    logger.warning('Model does NOT implement predict')
-            if save_probas:
-                if hasattr(model, 'predict_proba'):
-                    self.probas_dict = {
-                        **self.probas_dict,
-                        **{i: model.predict_proba(X[self.cv[i][1]])}
-                    }
-                else:
-                    logger.warning('Model does NOT implement predict_proba')
+            # predict
+            if hasattr(model, 'predict'):
+                self.preds_dict = {
+                    **self.preds_dict,
+                    **{i: model.predict(X[self.cv[i][1]])}
+                }
+            else:
+                logger.warning('Model does NOT implement predict')
+            # predict_proba
+            if hasattr(model, 'predict_proba'):
+                self.probas_dict = {
+                    **self.probas_dict,
+                    **{i: model.predict_proba(X[self.cv[i][1]])}
+                }
+            else:
+                logger.warning('Model does NOT implement predict_proba')
+        # collect data
         if self.preds_dict:
             preds_list = list(self.preds_dict.values())
             self.pred_out_of_sample = np.vstack(preds_list)
-            self.save_prediction(self.pred_out_of_sample)
+            # save pred
+            if self.predictions_location and save_predictions:
+                self.save_prediction(self.pred_out_of_sample)
         if self.probas_dict:
             probas_list = list(self.probas_dict.values())
             self.proba_out_of_sample = np.vstack(probas_list)
-            self.save_proba(self.proba_out_of_sample)
+            # save probas
+            if self.probas_location and save_probas:
+                self.save_proba(self.proba_out_of_sample)
         if self.verbose > 0:
             logger.info('Saving is done')
 
@@ -439,15 +442,10 @@ class GeneralTrainer(_BaseTrainer):
                 y = ensure_2d_array(y, axis=1)
                 y = pd.DataFrame(y)
         # check locations
-        if self.models_location is None:
-            save_models = False
-        if self.predictions_location is None:
-            save_predictions = False
-        if self.probas_location is None:
-            save_probas = False
-        if save_models + save_predictions + save_probas == 0:
+        if self.save_location is None:
             logger.warning('Warning! Nothing gets saved. '
-                           'Please check locations or cv')
+                           'Please reset save_location '
+                           'if you want to write results to disk')
         # save object
         self.preds_dict = {}
         self.probas_dict = {}
@@ -455,42 +453,47 @@ class GeneralTrainer(_BaseTrainer):
             # save model
             if save_models:
                 self.save_model(model, name='model_{}'.format(i))
-            if save_predictions:
-                if hasattr(model, 'predict'):
-                    self.preds_dict = {
-                        **self.preds_dict,
-                        **{
-                            i: pd.DataFrame(
-                                model.predict(X.iloc[self.cv[i][1]]),
-                                index=X.iloc[self.cv[i][1]].index
-                            )
-                        }
+            # pred
+            if hasattr(model, 'predict'):
+                self.preds_dict = {
+                    **self.preds_dict,
+                    **{
+                        i: pd.DataFrame(
+                            model.predict(X.iloc[self.cv[i][1]]),
+                            index=X.iloc[self.cv[i][1]].index
+                        )
                     }
-                else:
-                    logger.warning('Model does NOT implement predict')
-            if save_probas:
-                if hasattr(model, 'predict_proba'):
-                    self.probas_dict = {
-                        **self.probas_dict,
-                        **{
-                            i: pd.DataFrame(
-                                model.predict_proba(X.iloc[self.cv[i][1]]),
-                                index=X.iloc[self.cv[i][1]].index
-                            )
-                        }
+                }
+            else:
+                logger.warning('Model does NOT implement predict')
+            # probas
+            if hasattr(model, 'predict_proba'):
+                self.probas_dict = {
+                    **self.probas_dict,
+                    **{
+                        i: pd.DataFrame(
+                            model.predict_proba(X.iloc[self.cv[i][1]]),
+                            index=X.iloc[self.cv[i][1]].index
+                        )
                     }
-                else:
-                    logger.warning('Model does NOT implement predict_proba')
+                }
+            else:
+                logger.warning('Model does NOT implement predict_proba')
+
         if self.preds_dict:
             preds_list = list(self.preds_dict.values())
             self.pred_out_of_sample = \
                 pd.concat(preds_list, verify_integrity=True).sort_index()
-            self.save_prediction(self.pred_out_of_sample)
+            # save pred
+            if self.predictions_location and save_predictions:
+                self.save_prediction(self.pred_out_of_sample)
         if self.probas_dict:
             probas_list = list(self.probas_dict.values())
             self.proba_out_of_sample = \
                 pd.concat(probas_list, verify_integrity=True).sort_index()
-            self.save_proba(self.proba_out_of_sample)
+            # save probas
+            if self.probas_location and save_probas:
+                self.save_proba(self.proba_out_of_sample)
         if self.verbose > 0:
             logger.info('Saving is done')
 

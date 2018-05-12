@@ -15,7 +15,7 @@ from gravity_learn.utils import (force_array,
                                  check_is_fitted)
 from gravity_learn.logger import get_logger
 
-logger = get_logger('models.modifiers')
+logger = get_logger(__name__)
 
 __all__ = ['XGBClassifier2',
            'XGBRegressor2',

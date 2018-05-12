@@ -17,7 +17,7 @@ from gravity_learn.utils import check_is_fitted
 from gravity_learn.utils import force_array
 from gravity_learn.logger import get_logger
 
-logger = get_logger('models.transformers')
+logger = get_logger(__name__)
 
 
 __all__ = ['sigmoil',

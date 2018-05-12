@@ -15,7 +15,7 @@ from gravity_learn.utils import check_is_fitted
 from gravity_learn.utils import force_array
 from gravity_learn.logger import get_logger
 
-logger = get_logger('preprocessing.cleaners')
+logger = get_logger(__name__)
 
 __all__ = ['IdentityScaler',
            'InfHandler',
@@ -25,7 +25,7 @@ __all__ = ['IdentityScaler',
            'MADoutliers']
 
 
-class _CleanerBase(BaseEstimator, TransformerMixin):
+class _CleanerBase(BaseEstimator, TransformerMixin, metaclass=abc.ABCMeta):
     """
     Base class for all cleaners,
     must implement transform method

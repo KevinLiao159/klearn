@@ -27,7 +27,7 @@ from gravity_learn.utils import (check_is_fitted,
                                  shuffle)
 from gravity_learn.logger import get_logger
 
-logger = get_logger('preprocessing.features')
+logger = get_logger(__name__)
 
 
 __all__ = ['DiffMeanByTimeTransformer',
@@ -49,7 +49,7 @@ __all__ = ['DiffMeanByTimeTransformer',
 #  Base Class
 # --------------------------------------------------
 
-class _BaseFeature(BaseEstimator, TransformerMixin):
+class _BaseFeature(BaseEstimator, TransformerMixin, metaclass=abc.ABCMeta):
     """
     Base class for feature selections, engineering,
     must implement transform method
@@ -686,6 +686,8 @@ class PermutationTestFeatureSelector(_BaseFeature):
     The idea is to test the loss of signal of a given feature after permuting
     the feature. Intuitively, the bigger the loss, the more important a feature
     is.
+
+    NOTE: this is VI feature importance measure
 
     Parameters
     ----------

@@ -3,6 +3,8 @@ This module is responsible for trivial tasks, such as checking
 data, making assertions, converting to numpy for calculations
 """
 
+import os
+import psutil
 import numpy as np
 import pandas as pd
 import pickle
@@ -20,6 +22,7 @@ __all__ = ('check_gravity_index',
            'check_has_set_attr',
            'check_is_fitted',
            'process_cv_results',
+           'memory_stat',
            'save_object',
            'load_object',
            'check_cv',
@@ -129,6 +132,14 @@ def process_cv_results(cv_results):
         cols = ['mean_test_score', 'std_test_score']
     cols += [c for c in results.columns.values if c.startswith('param_')]
     return results[cols].sort_values(by='mean_test_score', ascending=False)
+
+
+def memory_stat():
+    # memory
+    process = psutil.Process(os.getpid())
+    memused = process.memory_info().rss
+    print('Total memory in use before reading data: {:.02f} GB '
+          ''.format(memused/(2**30)))
 
 
 def save_object(obj, filepath):

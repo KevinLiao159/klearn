@@ -339,6 +339,8 @@ def ts_predefined_split(X=None, y=None, groups=None,
     # generate index for rolling window folds
     folds_list = []
     for test_start in test_fold:
+        # NOTE: there will be missing one day if it's in Leap Year
+        # missing at 2004-12-31
         # get test_end
         test_end = test_start + np.timedelta64(test_window, 'W')
         test_end = np.min([max_d, test_end])

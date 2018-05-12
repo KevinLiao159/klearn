@@ -18,7 +18,7 @@ import seaborn.apionly as sns
 import matplotlib.pyplot as plt
 
 from gravity_learn.logger import get_logger, Loggable
-logger = get_logger('eda.seaborn')
+logger = get_logger(__name__)
 
 plt.style.use('ggplot')
 

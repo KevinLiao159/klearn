@@ -12,4 +12,4 @@
 # from gravity_learn.logger import get_logger, Loggable
 
 
-# logger = get_logger('eda.eda')
+# logger = get_logger(__name__)

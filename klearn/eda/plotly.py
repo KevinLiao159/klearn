@@ -12,7 +12,7 @@ from gravity_learn.logger import get_logger, Loggable
 
 plotly.offline.init_notebook_mode(connected=True)
 
-logger = get_logger('eda.plotly')
+logger = get_logger(__name__)
 
 
 __all__ = ['PlotlyPlot']
@@ -378,7 +378,7 @@ class PlotlyPlot(Loggable):
             fig = go.Figure(data=data, layout=layout)
             plotly.offline.iplot(fig)
 
-    def barplot(self, x, y, text=None, marker_attribute=None):
+    def barplot(self, x, y, text=None, marker_attribute=None, **kwargs):
         """plot bar chart
 
         Parameters
@@ -394,6 +394,9 @@ class PlotlyPlot(Loggable):
             eg. {'color': 'red',
                  'line': {'color': 'red', 'width': 2}
                  }
+
+        **kwargs: a dictionary of additional params is passed in go.Bar
+
         Returns
         -------
         A renderable plot
@@ -409,7 +412,8 @@ class PlotlyPlot(Loggable):
                 text=text,
                 textposition='auto',
                 marker=marker_attribute,
-                opacity=0.6
+                opacity=0.6,
+                **kwargs
             )
         ]
         layout = go.Layout(
