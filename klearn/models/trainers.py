@@ -82,6 +82,10 @@ class _BaseTrainer(metaclass=abc.ABCMeta):
             self.models_location = os.path.join(self.save_location, 'models')
             self.predictions_location = os.path.join(self.save_location, 'predictions')           # noqa
             self.probas_location = os.path.join(self.save_location, 'probas')
+        elif self.save_location is None:
+            self.models_location = None
+            self.predictions_location = None
+            self.probas_location = None
 
         # init the cv
         if cv is None:

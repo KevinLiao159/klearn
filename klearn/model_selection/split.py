@@ -337,7 +337,6 @@ def ts_predefined_split(X=None, y=None, groups=None,
         raise ValueError('No trainning data available for the first fold! '
                          'Please re-enter parameters!')
     # generate index for rolling window folds
-    folds_list = []
     for test_start in test_fold:
         # NOTE: there will be missing one day if it's in Leap Year
         # missing at 2004-12-31
@@ -354,10 +353,5 @@ def ts_predefined_split(X=None, y=None, groups=None,
         train_end_idx = np.searchsorted(a=dates, v=train_end, side='right')
         test_start_idx = np.searchsorted(a=dates, v=test_start, side='left')
         test_end_idx = np.searchsorted(a=dates, v=test_end, side='right')
-        folds_list.append(
-            tuple((
-                np.arange(start=train_start_idx, stop=train_end_idx, step=1),
-                np.arange(start=test_start_idx, stop=test_end_idx, step=1)
-                ))
-        )
-    return folds_list
+        yield (np.arange(start=train_start_idx, stop=train_end_idx, step=1),
+               np.arange(start=test_start_idx, stop=test_end_idx, step=1))
