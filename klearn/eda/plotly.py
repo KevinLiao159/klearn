@@ -8,7 +8,7 @@ import plotly.graph_objs as go
 # from plotly import tools
 
 from gravity_learn.utils import force_array, check_consistent_length
-from gravity_learn.logger import get_logger, Loggable
+from gravity_learn.logger import get_logger
 
 plotly.offline.init_notebook_mode(connected=True)
 
@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 __all__ = ['PlotlyPlot']
 
 
-class PlotlyPlot(Loggable):
+class PlotlyPlot:
     """
     Wrapper for plotly API, potentially generate line charts, scatter plots,
     bar charts, pie charts, box plots, stack charts, distribution plots
