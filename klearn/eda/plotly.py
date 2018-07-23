@@ -18,6 +18,46 @@ logger = get_logger(__name__)
 __all__ = ['PlotlyPlot']
 
 
+
+def _check_num_y(y):
+    allowed_vector_type = (list, pd.Series, np.ndarray, pd.DataFrame, pd.Index) # noqa
+    # check if y is a list of vectors, and get list lenth
+    if any(isinstance(vec, allowed_vector_type) for vec in y):
+        # check if y is a list (list preserves order)
+        assert isinstance(y, (list, tuple)), \
+            'Warning! y is NOT a list or tuple! Ordering is compromised'
+        num_y = len(y)
+    else:
+        y = [y]
+        num_y = 1
+
+    return y, num_y
+
+
+def _check_data_lenth_consistency(x, y):
+    for i, vec in enumerate(y):
+        assert len(x) != len(vec), \
+            'Warning! {}th vector in y has different length'.format(i)
+
+
+def _check_arg(arg_name, length, arg=None):
+    if arg is None:
+        if isinstance(arg, (list, tuple)):
+            assert len(arg) == length, \
+                'length of {} must be the same as y'
+        else:   # not list, a single value
+            arg = [deepcopy(arg) for i in range(length)]
+    else:   # arg is not given
+        if arg_name == 'legend_name':
+            arg = [str(i) for i in range(length)]
+        if arg_name == 'mode':
+            arg = ['lines' for i in range(length)]
+        else:
+            arg = [{} for i in range(length)]
+
+    return arg
+
+
 class PlotlyPlot:
     """
     Wrapper for plotly API, potentially generate line charts, scatter plots,
@@ -90,77 +130,46 @@ class PlotlyPlot:
         -------
         A renderable plot
         """
-        # make sure y is a list of vec
-        if not isinstance(y, list):
-            y = [y]
-        # check if multiple vectors in y
-        allowed_vector_type = \
-            (list, pd.Series, np.ndarray, pd.DataFrame, pd.Index)
-        if any(isinstance(vec, allowed_vector_type) for vec in y):
-            # name
-            if legend_name is not None:
-                if not isinstance(legend_name, allowed_vector_type):
-                    legend_name = [legend_name] * len(y)
-                if len(legend_name) != len(y):
-                    raise ValueError('length of legend_name must be the same as y') # noqa
-            elif legend_name is None:
-                legend_name = \
-                    list(np.linspace(0, len(y)-1, len(y)).astype(int))
-            # mode
-            if mode is not None:
-                if not isinstance(mode, allowed_vector_type):
-                    mode = [mode] * len(y)
-                if len(mode) != len(y):
-                    raise ValueError('length of mode must be the same as y') # noqa
-            elif mode is None:
-                mode = ['lines'] * len(y)
-            # line
-            if line_attribute is not None:
-                if not isinstance(line_attribute, allowed_vector_type):
-                    line_attribute = [line_attribute] * len(y)
-                if len(line_attribute) != len(y):
-                    raise ValueError('length of line_attribute must be the same as y') # noqa
-            elif line_attribute is None:
-                line_attribute = [{}] * len(y)
-            # marker
-            if marker_attribute is not None:
-                if not isinstance(marker_attribute, allowed_vector_type):
-                    marker_attribute = [marker_attribute] * len(y)
-                if len(marker_attribute) != len(y):
-                    raise ValueError('length of marker_attribute must be the same as y') # noqa
-            elif marker_attribute is None:
-                marker_attribute = [{}] * len(y)
+        # check num_y
+        y, num_y = _check_num_y(y)
+        # check data consistency
+        _check_data_lenth_consistency(x, y)
+        # check args
+        legend_name = _check_arg('legend_name', num_y, legend_name)
+        mode = _check_arg('mode', num_y, mode)
+        line_attribute = _check_arg('line_attribute', num_y, line_attribute)
+        marker_attribute = _check_arg('marker_attribute', num_y, marker_attribute)  # noqa
 
-            # store data
-            data = []
-            for i, vec in enumerate(y):
-                data.append(
-                    go.Scatter(
-                        x=x,
-                        y=vec,
-                        name=legend_name[i],
-                        mode=mode[i],
-                        line=line_attribute[i],
-                        marker=marker_attribute[i],
-                        **kwargs
-                    )
-                )
-            layout = go.Layout(
-                title=self.title,
-                yaxis=self.yaxis,
-                xaxis=self.xaxis,
-                width=self.width,
-                height=self.height,
-                margin=go.Margin(
-                    # l=50,
-                    # r=50,
-                    t=65,
-                    b=60,
-                    pad=4
+        # store data
+        data = []
+        for i, vec in enumerate(y):
+            data.append(
+                go.Scatter(
+                    x=x,
+                    y=vec,
+                    name=legend_name[i],
+                    mode=mode[i],
+                    line=line_attribute[i],
+                    marker=marker_attribute[i],
+                    **kwargs
                 )
             )
-            fig = go.Figure(data=data, layout=layout)
-            plotly.offline.iplot(fig)
+        layout = go.Layout(
+            title=self.title,
+            yaxis=self.yaxis,
+            xaxis=self.xaxis,
+            width=self.width,
+            height=self.height,
+            margin=go.layout.Margin(
+                # l=50,
+                # r=50,
+                t=65,
+                b=60,
+                pad=4
+            )
+        )
+        fig = go.Figure(data=data, layout=layout)
+        plotly.offline.iplot(fig)
 
     def lineplot_y2(self, x, y, y2, y2_title=None,
                     legend_name=None, line_attribute=None,
@@ -198,109 +207,72 @@ class PlotlyPlot:
         -------
         A renderable plot
         """
-        # make sure y is a list of vec
-        if not isinstance(y, list):
-            y = [y]
-        if not isinstance(y2, list):
-            y2 = [y2]
-        # check if multiple vectors in y
-        allowed_vector_type = \
-            (list, pd.Series, np.ndarray, pd.DataFrame, pd.Index)
-        if any(isinstance(vec, allowed_vector_type) for vec in y):
-            # name
-            if legend_name is not None:
-                if not isinstance(legend_name, allowed_vector_type):
-                    legend_name = [legend_name] * len(y)
-                if len(legend_name) != len(y):
-                    raise ValueError('length of legend_name must be the same as y') # noqa
-            elif legend_name is None:
-                legend_name = \
-                    list(np.linspace(0, len(y)-1, len(y)).astype(int))
-            # line
-            if line_attribute is not None:
-                if not isinstance(line_attribute, allowed_vector_type):
-                    line_attribute = [line_attribute] * len(y)
-                if len(line_attribute) != len(y):
-                    raise ValueError('length of line_attribute must be the same as y') # noqa
-            elif line_attribute is None:
-                line_attribute = [{}] * len(y)
+        # check y
+        y, num_y = _check_num_y(y)
+        _check_data_lenth_consistency(x, y)
+        legend_name = _check_arg('legend_name', num_y, legend_name)
+        line_attribute = _check_arg('line_attribute', num_y, line_attribute)
 
-        # check if multiple vectors in y2
-        if any(isinstance(vec, allowed_vector_type) for vec in y2):
-            # name
-            if legend_name2 is not None:
-                if not isinstance(legend_name2, allowed_vector_type):
-                    legend_name2 = [legend_name2] * len(y)
-                if len(legend_name2) != len(y2):
-                    raise ValueError('length of legend_name2 must be the same as y2') # noqa
-            elif legend_name2 is None:
-                legend_name2 = list(
-                    np.linspace(0, len(y2)-1, len(y2)).astype(int)
-                    + len(legend_name)
-                )
-            # line
-            if line_attribute2 is not None:
-                if not isinstance(line_attribute2, allowed_vector_type):
-                    line_attribute2 = [line_attribute2] * len(y)
-                if len(line_attribute2) != len(y2):
-                    raise ValueError('length of line_attribute2 must be the same as y2') # noqa
-            elif line_attribute2 is None:
-                line_attribute2 = [{}] * len(y2)
+        # check y2
+        y2, num_y2 = _check_num_y(y2)
+        _check_data_lenth_consistency(x, y2)
+        legend_name = _check_arg('legend_name2', num_y2, legend_name)
+        line_attribute = _check_arg('line_attribute2', num_y2, line_attribute)
 
-            if y2_title is None:
-                y2_title = 'y2'
+        if y2_title is None:
+            y2_title = 'y2'
 
-            # store data
-            data = []
-            for i, vec in enumerate(y):
-                data.append(
-                    go.Scatter(
-                        x=x,
-                        y=vec,
-                        name=legend_name[i],
-                        line=line_attribute[i],
-                        **kwargs
-                    )
-                )
-            for i, vec in enumerate(y2):
-                data.append(
-                    go.Scatter(
-                        x=x,
-                        y=vec,
-                        name=legend_name2[i],
-                        line=line_attribute2[i],
-                        **kwargs,
-                        yaxis='y2'
-                    )
-                )
-
-            layout = go.Layout(
-                title=self.title,
-                yaxis=self.yaxis,
-                yaxis2=dict(
-                    title=y2_title,
-                    titlefont=dict(
-                        color='rgb(148, 103, 189)'
-                    ),
-                    tickfont=dict(
-                        color='rgb(148, 103, 189)'
-                    ),
-                    overlaying='y',
-                    side='right'
-                ),
-                xaxis=self.xaxis,
-                width=self.width,
-                height=self.height,
-                margin=go.Margin(
-                    # l=50,
-                    # r=50,
-                    t=65,
-                    b=60,
-                    pad=4
+        # store data
+        data = []
+        for i, vec in enumerate(y):
+            data.append(
+                go.Scatter(
+                    x=x,
+                    y=vec,
+                    name=legend_name[i],
+                    line=line_attribute[i],
+                    **kwargs
                 )
             )
-            fig = go.Figure(data=data, layout=layout)
-            plotly.offline.iplot(fig)
+        for i, vec in enumerate(y2):
+            data.append(
+                go.Scatter(
+                    x=x,
+                    y=vec,
+                    name=legend_name2[i],
+                    line=line_attribute2[i],
+                    **kwargs,
+                    yaxis='y2'
+                )
+            )
+
+        layout = go.Layout(
+            title=self.title,
+            yaxis=self.yaxis,
+            yaxis2=dict(
+                title=y2_title,
+                titlefont=dict(
+                    color='rgb(148, 103, 189)'
+                ),
+                tickfont=dict(
+                    color='rgb(148, 103, 189)'
+                ),
+                overlaying='y',
+                side='right'
+            ),
+            xaxis=self.xaxis,
+            width=self.width,
+            height=self.height,
+            margin=go.layout.Margin(
+                # l=50,
+                # r=50,
+                t=65,
+                b=60,
+                pad=4
+            )
+        )
+        fig = go.Figure(data=data, layout=layout)
+        plotly.offline.iplot(fig)
 
     def stack_barplot(self, x, y, legend_name=None, marker_attribute=None):
         """plot stacked bar chart(s)
@@ -323,60 +295,29 @@ class PlotlyPlot:
         -------
         A renderable plot
         """
-        if not isinstance(y, list):
-            y = [y]
+        # check y
+        y, num_y = _check_num_y(y)
+        _check_data_lenth_consistency(x, y)
+        legend_name = _check_arg('legend_name', num_y, legend_name)
+        marker_attribute = _check_arg('marker_attribute', num_y, marker_attribute)  # noqa
 
-        # check if multiple vectors in y
-        allowed_vector_type = \
-            (list, pd.Series, np.ndarray, pd.DataFrame, pd.Index)
-        if any(isinstance(vec, allowed_vector_type) for vec in y):
-            # name
-            if legend_name is not None:
-                if not isinstance(legend_name, allowed_vector_type):
-                    legend_name = [legend_name] * len(y)
-                if len(legend_name) != len(y):
-                    raise ValueError('length of legend_name must be the same as y') # noqa
-            elif legend_name is None:
-                legend_name = \
-                    list(np.linspace(0, len(y)-1, len(y)).astype(int))
-            # marker
-            if marker_attribute is not None:
-                if not isinstance(marker_attribute, allowed_vector_type):
-                    marker_attribute = [marker_attribute] * len(y)
-                if len(marker_attribute) != len(y):
-                    raise ValueError('length of marker_attribute must be the same as y') # noqa
-            elif marker_attribute is None:
-                marker_attribute = [{}] * len(y)
-
-            # store data
-            data = []
-            for i, vec in enumerate(y):
-                data.append(
-                    go.Bar(
-                        x=x,
-                        y=vec,
-                        name=legend_name[i],
-                        marker=marker_attribute[i],
-                        opacity=0.6
-                    )
-                )
-            layout = go.Layout(
-                title=self.title,
-                yaxis=self.yaxis,
-                xaxis=self.xaxis,
-                width=self.width,
-                height=self.height,
-                margin=go.Margin(
-                    # l=50,
-                    # r=50,
-                    t=65,
-                    b=60,
-                    pad=4
-                ),
-                barmode='stack'
-            )
-            fig = go.Figure(data=data, layout=layout)
-            plotly.offline.iplot(fig)
+        # store data
+        data = []
+        for i, vec in enumerate(y):
+            data.append(go.Bar(x=x,
+                               y=vec,
+                               name=legend_name[i],
+                               marker=marker_attribute[i],
+                               opacity=0.6))
+        layout = go.Layout(title=self.title,
+                           yaxis=self.yaxis,
+                           xaxis=self.xaxis,
+                           width=self.width,
+                           height=self.height,
+                           margin=go.layout.Margin(t=65, b=60, pad=4),
+                           barmode='stack')
+        fig = go.Figure(data=data, layout=layout)
+        plotly.offline.iplot(fig)
 
     def barplot(self, x, y, text=None, marker_attribute=None, **kwargs):
         """plot bar chart
@@ -405,31 +346,19 @@ class PlotlyPlot:
             marker_attribute = {}
 
         # store data
-        data = [
-            go.Bar(
-                x=x,
-                y=y,
-                text=text,
-                textposition='auto',
-                marker=marker_attribute,
-                opacity=0.6,
-                **kwargs
-            )
-        ]
-        layout = go.Layout(
-            title=self.title,
-            yaxis=self.yaxis,
-            xaxis=self.xaxis,
-            width=self.width,
-            height=self.height,
-            margin=go.Margin(
-                # l=50,
-                # r=50,
-                t=65,
-                b=85,
-                pad=4
-            )
-        )
+        data = [go.Bar(x=x,
+                       y=y,
+                       text=text,
+                       textposition='auto',
+                       marker=marker_attribute,
+                       opacity=0.6,
+                       **kwargs)]
+        layout = go.Layout(title=self.title,
+                           yaxis=self.yaxis,
+                           xaxis=self.xaxis,
+                           width=self.width,
+                           height=self.height,
+                           margin=go.layout.Margin(t=65, b=85, pad=4))
         fig = go.Figure(data=data, layout=layout)
         plotly.offline.iplot(fig)
 
@@ -455,30 +384,16 @@ class PlotlyPlot:
             marker_attribute = {}
 
         # store data
-        data = [
-            go.Pie(
-                labels=labels,
-                values=values,
-                hoverinfo='label+value',
-                textinfo='label+percent',
-                textfont={'size': 10},
-                marker=marker_attribute
-            )
-        ]
-        layout = go.Layout(
-            title=self.title,
-            # yaxis=self.yaxis,
-            # xaxis=self.xaxis,
-            width=self.width,
-            height=self.height,
-            margin=go.Margin(
-                # l=50,
-                # r=50,
-                t=65,
-                b=85,
-                pad=4
-            )
-        )
+        data = [go.Pie(labels=labels,
+                       values=values,
+                       hoverinfo='label+value',
+                       textinfo='label+value',
+                       textfont={'size': 10},
+                       marker=marker_attribute)]
+        layout = go.Layout(title=self.title,
+                           width=self.width,
+                           height=self.height,
+                           margin=go.layout.Margin(t=65, b=85, pad=4))
         fig = go.Figure(data=data, layout=layout)
         plotly.offline.iplot(fig)
 
@@ -533,25 +448,14 @@ class PlotlyPlot:
                     )
                 )
         elif group is None:
-            trace = go.Scattergl(
-                x=x,
-                y=y,
-                mode='markers'
-            )
+            trace = go.Scattergl(x=x, y=y, mode='markers')
             data = [trace]
 
-        layout = go.Layout(
-            title=self.title,
-            yaxis=self.yaxis,
-            xaxis=self.xaxis,
-            width=self.width,
-            height=self.height,
-            margin=go.Margin(
-                # l=50,
-                # r=50,
-                t=65,
-                b=60,
-                pad=4)
-        )
+        layout = go.Layout(title=self.title,
+                           yaxis=self.yaxis,
+                           xaxis=self.xaxis,
+                           width=self.width,
+                           height=self.height,
+                           margin=go.layout.Margin(t=65, b=60, pad=4))
         fig = go.Figure(data=data, layout=layout)
         plotly.offline.iplot(fig)
