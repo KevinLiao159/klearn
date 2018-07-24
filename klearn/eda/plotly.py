@@ -36,24 +36,24 @@ def _check_num_y(y):
 
 def _check_data_lenth_consistency(x, y):
     for i, vec in enumerate(y):
-        assert len(x) != len(vec), \
+        assert len(x) == len(vec), \
             'Warning! {}th vector in y has different length'.format(i)
 
 
 def _check_arg(arg_name, length, arg=None):
     if arg is None:
-        if isinstance(arg, (list, tuple)):
-            assert len(arg) == length, \
-                'length of {} must be the same as y'
-        else:   # not list, a single value
-            arg = [deepcopy(arg) for i in range(length)]
-    else:   # arg is not given
         if arg_name == 'legend_name':
             arg = [str(i) for i in range(length)]
         if arg_name == 'mode':
             arg = ['lines' for i in range(length)]
         else:
             arg = [{} for i in range(length)]
+    else:   # arg is given
+        if isinstance(arg, (list, tuple)):
+            assert len(arg) == length, \
+                'length of {} must be the same as y'
+        else:   # not list, a single value
+            arg = [deepcopy(arg) for i in range(length)]
 
     return arg
 
