@@ -35,9 +35,10 @@ def _check_num_y(y):
 
 
 def _check_data_lenth_consistency(x, y):
-    for i, vec in enumerate(y):
-        assert len(x) == len(vec), \
-            'Warning! {}th vector in y has different length'.format(i)
+    pass
+    # for i, vec in enumerate(y):
+    #     if len(x) != len(vec):
+    #         logger.Warning('Warning! {}th vector in y has different length'.format(i))  # noqa
 
 
 def _check_arg(arg_name, length, arg=None):
@@ -216,8 +217,8 @@ class PlotlyPlot:
         # check y2
         y2, num_y2 = _check_num_y(y2)
         _check_data_lenth_consistency(x, y2)
-        legend_name = _check_arg('legend_name2', num_y2, legend_name)
-        line_attribute = _check_arg('line_attribute2', num_y2, line_attribute)
+        legend_name2 = _check_arg('legend_name2', num_y2, legend_name2)
+        line_attribute2 = _check_arg('line_attribute2', num_y2, line_attribute2)    # noqa
 
         if y2_title is None:
             y2_title = 'y2'
